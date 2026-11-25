@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Comparator;
 
 /**
  * This is a greedy algorithm which solves the scheduling problem for classes at UMN.
@@ -31,9 +32,9 @@ public class Scheduler {
   /**
    * Converts the tasks from Strings to their integer versions
    * (e.g. 08:30 becomes 510 because 8 hours and 30 minutes is
-   *  510 minutes), this makes it easier to sort and check for
-   *  collisions. Uses its helper method to add new int[]s to
-   *  intTasks.
+   * 510 minutes), this makes it easier to sort and check for
+   * collisions. Uses its helper method to add new int[]s to
+   * intTasks.
    */
   public void convertToInt() {
     intTasks = new ArrayList<int[]>();
@@ -74,6 +75,7 @@ public class Scheduler {
     if (intTasks.size() == 0) { // if there's no int representation of the data it'll wipe the schedule out
       return;
     }
+    tasks = new ArrayList<String[]>();
     for (int[] inner : intTasks) {
       tasks.add(convertToStringHelper(inner));
     }
@@ -128,12 +130,43 @@ public class Scheduler {
     return stringTask;
   }
 
-  public void schedule() {
-
+  /**
+   * Sorts the tasks in order by converting tasks to their int
+   * version and sorts by end time in nondecreasing order.
+   */
+  public void sortTasks() {
+    convertToInt(); // get the int version
+    intTasks.sort(Comparator.comparingInt(a -> a[1])); // sorts by the second element (the end time) of the inner arrays
   }
 
   /**
-   * Getter for testing that returns the tasks ArrayList.
+   * The method that actually puts together the schedule with
+   * the most tasks and changes both intTasks and tasks to be
+   * scheduled (so this action cannot be reversed, but they
+   * are both entirely different objects so the original list
+   * of tasks still exists). It starts by sorting then it
+   * immediately chooses the first task in the list then
+   * chooses the next viable task in the list (viable meaning
+   * no collisions) until there are no more tasks to check.
+   */
+  public void schedule() {
+    sortTasks(); // this method sorts the int version, so we can immediately start the algorithm now
+    ArrayList<int[]> scheduleList = new ArrayList<int[]>(); // new scheduled list variable
+    int endToCompare = intTasks.get(0)[1]; // save the end time of the first element to compare to the start of the next task until a task works
+    scheduleList.add(intTasks.get(0)); // add the first task
+    for (int i = 1; i < intTasks.size(); i++) {
+      int startToCompare = intTasks.get(i)[0];
+      if (startToCompare >= (endToCompare + 15)) { // check if the start of the current task is at least 15 minutes after the end of the previous task chosen
+        scheduleList.add(intTasks.get(i));
+        endToCompare = intTasks.get(i)[1]; // new end time to compare with
+      }
+    }
+    intTasks = scheduleList;
+    convertToString(); // make the String version for applicability
+  }
+
+  /**
+   * Getter that returns the tasks ArrayList.
    */
   public ArrayList<String[]> getTasks() {
     return tasks;
@@ -141,7 +174,6 @@ public class Scheduler {
 
   /**
    * Getter for testing that returns the intTasks ArrayList.
-   * @return
    */
   public ArrayList<int[]> getIntTasks() {
     return intTasks;
